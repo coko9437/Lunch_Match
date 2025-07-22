@@ -1,0 +1,26 @@
+package com.busanit501.yyjproject.domain;
+
+import jakarta.persistence.Embeddable;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Embeddable // 다른 엔티티에 포함될 수 있는 클래스
+@Getter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class UploadResult {
+    private String uuid;
+    private String fileName;
+    private boolean isImage;
+
+    public String getLink() {
+        if(isImage){
+            return "s_" + uuid + "_" + fileName; // 썸네일 경로
+        } else {
+            return uuid + "_" + fileName;
+        }
+    }
+}

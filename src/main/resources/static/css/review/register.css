@@ -1,0 +1,27 @@
+/* Star Rating */
+#star-rating {
+    display: flex;
+    gap: 5px;
+    margin: 10px 0 15px 0;
+}
+
+#star-rating .star {
+    font-size: 2em;
+    color: #ddd;
+    cursor: pointer;
+    transition: color 0.2s, transform 0.1s;
+}
+
+#star-rating .star:hover {
+    transform: scale(1.1);
+}
+
+#star-rating .star.selected,
+#star-rating .star.filled {
+    color: #FFD700;
+}
+
+/* Emotion Select Specifics */
+select#emotion {
+    font-size: 1.5em;
+}
