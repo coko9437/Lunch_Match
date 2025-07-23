@@ -74,8 +74,9 @@ public class UploadUtil {
             }
 
             String originalName = multipartFile.getOriginalFilename();
+            String safeFileName = originalName.replaceAll("[^a-zA-Z0-9._-]", "");
             String uuid = UUID.randomUUID().toString();
-            String objectKey = uuid + "_" + originalName;
+            String objectKey = uuid + "_" + safeFileName;
 
             boolean isImage = false;
             try {
