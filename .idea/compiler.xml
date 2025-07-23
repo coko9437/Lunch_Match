@@ -27,12 +27,9 @@
         <module name="yyjProject.test" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel target="17" />
   </component>
   <component name="JavacSettings">
-    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
-      <module name="yyjProject" options="-parameters" />
-      <module name="yyjProject.main" options="-parameters" />
-      <module name="yyjProject.test" options="-parameters" />
-    </option>
+    <option name="ADDITIONAL_OPTIONS_STRING" value="-parameters" />
   </component>
 </project>

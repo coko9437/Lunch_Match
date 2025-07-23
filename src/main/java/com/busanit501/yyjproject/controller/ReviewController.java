@@ -1,19 +1,31 @@
 package com.busanit501.yyjproject.controller;
 
 import com.busanit501.yyjproject.dto.ReviewDTO;
+import com.busanit501.yyjproject.dto.UploadResultDTO;
 import com.busanit501.yyjproject.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.busanit501.yyjproject.dto.PageRequestDTO;
 import com.busanit501.yyjproject.dto.PageResponseDTO;
+import com.busanit501.yyjproject.util.UploadUtil;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @Controller
@@ -24,6 +36,7 @@ import java.util.Map;
 public class ReviewController {
 
     private final ReviewService reviewService;
+    private final UploadUtil uploadUtil;
 
     // 감정 목록 정의
     private final Map<String, String> emotionMap = new LinkedHashMap<>();
@@ -64,6 +77,14 @@ public class ReviewController {
         Long review_id = reviewService.register(reviewDTO);
         redirectAttributes.addFlashAttribute("result", review_id);
         return "redirect:/review/list";
+    }
+
+    // 파일 업로드 처리
+    @PostMapping("/upload")
+    @ResponseBody
+    public List<UploadResultDTO> upload(List<MultipartFile> files) {
+        log.info("upload POST...");
+        return uploadUtil.uploadFiles(files);
     }
 
     @GetMapping({"/read", "/modify"})
@@ -111,6 +132,23 @@ public class ReviewController {
         model.addAttribute("responseDTO", responseDTO);
         model.addAttribute("emotionMap", emotionMap);
         model.addAttribute("emoticonMap", emoticonMap); // 이모티콘 맵 추가 // 감정 맵 추가
+    }
+
+    // MinIO에서 파일 가져오기
+    @GetMapping("/view/{fileName}")
+    public ResponseEntity<Resource> viewFile(@PathVariable String fileName) {
+        try {
+            ResponseInputStream<GetObjectResponse> object = uploadUtil.getFileFromMinio(fileName);
+            String contentType = object.response().contentType();
+            InputStreamResource resource = new InputStreamResource(object);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .body(resource);
+        } catch (Exception e) {
+            log.error("Error viewing file from MinIO: " + fileName, e);
+            return ResponseEntity.notFound().build();
+        }
     }
 
 }

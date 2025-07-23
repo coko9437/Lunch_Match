@@ -43,4 +43,65 @@ document.addEventListener('DOMContentLoaded', function() {
     // 초기 로드 시 별 상태 업데이트 (기본값 0이므로 모두 빈 별)
     console.log(`Initial load, currentRating: ${currentRating}`);
     updateStarVisuals(currentRating);
+
+    // 파일 업로드 로직
+    const fileInput = document.getElementById('fileInput');
+    const uploadResultDiv = document.getElementById('uploadResult');
+    const form = document.querySelector('form');
+
+    fileInput.addEventListener('change', function(e) {
+        const files = e.target.files;
+        if (files.length === 0) {
+            return;
+        }
+
+        const formData = new FormData();
+        for (let i = 0; i < files.length; i++) {
+            formData.append('files', files[i]);
+        }
+
+        fetch('/review/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Upload successful:', data);
+            uploadResultDiv.innerHTML = ''; // 기존 미리보기 초기화
+            data.forEach((fileInfo, index) => {
+                const imgPath = fileInfo.img ? `/view/${fileInfo.link}` : `/view/${fileInfo.link}`;
+                const imgElement = document.createElement('img');
+                imgElement.src = imgPath;
+                imgElement.alt = fileInfo.fileName;
+                imgElement.style.maxWidth = '100px';
+                imgElement.style.maxHeight = '100px';
+                imgElement.style.margin = '5px';
+                uploadResultDiv.appendChild(imgElement);
+
+                // 숨겨진 input 필드 추가하여 DTO에 파일 정보 전송
+                // Spring MVC가 List<UploadResultDTO>를 바인딩할 수 있도록 인덱싱된 이름 사용
+                const uuidInput = document.createElement('input');
+                uuidInput.type = 'hidden';
+                uuidInput.name = `uploadFileNames[${index}].uuid`;
+                uuidInput.value = fileInfo.uuid;
+                form.appendChild(uuidInput);
+
+                const fileNameInput = document.createElement('input');
+                fileNameInput.type = 'hidden';
+                fileNameInput.name = `uploadFileNames[${index}].fileName`;
+                fileNameInput.value = fileInfo.fileName;
+                form.appendChild(fileNameInput);
+
+                const imgInput = document.createElement('input');
+                imgInput.type = 'hidden';
+                imgInput.name = `uploadFileNames[${index}].img`;
+                imgInput.value = fileInfo.img; // boolean 값은 "true" 또는 "false" 문자열로 전송
+                form.appendChild(imgInput);
+            });
+        })
+        .catch(error => {
+            console.error('Upload failed:', error);
+            alert('파일 업로드에 실패했습니다.');
+        });
+    });
 });

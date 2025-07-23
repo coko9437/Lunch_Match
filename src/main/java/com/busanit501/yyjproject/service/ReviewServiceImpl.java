@@ -27,7 +27,21 @@ public class ReviewServiceImpl implements ReviewService {
     public Long register(ReviewDTO reviewDTO) {
         log.info("register...");
         Review review = modelMapper.map(reviewDTO, Review.class);
+
+        // UploadResultDTO 리스트를 Review 엔티티의 fileList에 추가
+        if (reviewDTO.getUploadFileNames() != null && !reviewDTO.getUploadFileNames().isEmpty()) {
+            reviewDTO.getUploadFileNames().forEach(uploadResultDTO -> {
+                review.getFileList().add(modelMapper.map(uploadResultDTO, com.busanit501.yyjproject.domain.UploadResult.class));
+            });
+        }
+
         Long review_id = reviewRepository.save(review).getReview_id();
+
+        log.info("Review entity before saving: " + review);
+        if (review.getFileList() != null) {
+            review.getFileList().forEach(file -> log.info("  File in review entity: " + file.getFileName() + ", isImage: " + file.isImage()));
+        }
+
         return review_id;
     }
 
@@ -46,6 +60,14 @@ public class ReviewServiceImpl implements ReviewService {
         Review review = result.orElseThrow();
 
         review.change(reviewDTO.getContent(), reviewDTO.getMenu(), reviewDTO.getPlace(), reviewDTO.getRating(), reviewDTO.getEmotion());
+
+        // 기존 파일 목록 삭제 후 새로운 파일 목록 추가
+        review.getFileList().clear();
+        if (reviewDTO.getUploadFileNames() != null && !reviewDTO.getUploadFileNames().isEmpty()) {
+            reviewDTO.getUploadFileNames().forEach(uploadResultDTO -> {
+                review.getFileList().add(modelMapper.map(uploadResultDTO, com.busanit501.yyjproject.domain.UploadResult.class));
+            });
+        }
 
         reviewRepository.save(review);
     }

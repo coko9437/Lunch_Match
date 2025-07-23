@@ -53,6 +53,15 @@
             <p class="form-control-static" th:text="${#temporals.format(reviewDTO.modDate, 'yyyy-MM-dd HH:mm')}"></p>
         </div>
 
+        <div th:if="${reviewDTO.uploadFileNames != null and !reviewDTO.uploadFileNames.isEmpty()}">
+            <label>첨부 이미지</label>
+            <div class="image-preview-area">
+                <div th:each="fileInfo : ${reviewDTO.uploadFileNames}" class="image-item">
+                    <img th:src="@{/review/view/{fileName}(fileName=${fileInfo.link})}" th:alt="${fileInfo.fileName}" style="max-width: 150px; max-height: 150px; margin: 5px;">
+                </div>
+            </div>
+        </div>
+
         <div class="button-area">
             <a th:href="@{/review/modify(review_id=${reviewDTO.review_id}, page=${pageRequestDTO.page}, size=${pageRequestDTO.size}, type=${pageRequestDTO.type}, keyword=${pageRequestDTO.keyword})}">
                 <button type="button">수정</button>

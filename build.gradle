@@ -81,6 +81,9 @@ dependencies {
     // 원본 이미지 -> 작은 이미지 변환 도구,
     // https://mvnrepository.com/artifact/net.coobird/thumbnailator
     implementation group: 'net.coobird', name: 'thumbnailator', version: '0.4.20'
+
+    // MinIO (AWS S3 호환) 연동을 위한 AWS SDK S3
+    implementation 'software.amazon.awssdk:s3:2.26.18'
 }
 
 tasks.named('test') {

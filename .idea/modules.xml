@@ -2,8 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Lunch_Match.iml" filepath="$PROJECT_DIR$/.idea/Lunch_Match.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/1404433808/yyjProject.main.iml" filepath="$PROJECT_DIR$/.idea/modules/1404433808/yyjProject.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/yyjProject.main.iml" filepath="$PROJECT_DIR$/.idea/modules/yyjProject.main.iml" />
     </modules>
   </component>
 </project>
