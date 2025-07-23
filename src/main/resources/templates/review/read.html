@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout}">
+<head>
+    <title>리뷰 상세</title>
+    <link rel="stylesheet" th:href="@{/css/review/register.css}">
+</head>
+<body>
+<div layout:fragment="content">
+    <h1>리뷰 상세 정보</h1>
+
+    <div class="form-container">
+        <div>
+            <label>리뷰 ID</label>
+            <p class="form-control-static" th:text="${reviewDTO.review_id}"></p>
+        </div>
+        <div>
+            <label>작성자 ID</label>
+            <p class="form-control-static" th:text="${reviewDTO.member_id}"></p>
+        </div>
+        <div>
+            <label>내용</label>
+            <p class="form-control-static" th:text="${reviewDTO.content}"></p>
+        </div>
+        <div>
+            <label>메뉴</label>
+            <p class="form-control-static" th:text="${reviewDTO.menu}"></p>
+        </div>
+        <div>
+            <label>장소</label>
+            <p class="form-control-static" th:text="${reviewDTO.place}"></p>
+        </div>
+        <div>
+            <label>평점</label>
+            <div id="star-rating">
+                <th:block th:each="i : ${#numbers.sequence(1, 5)}">
+                    <span th:if="${i <= reviewDTO.rating}" class="star filled">★</span>
+                    <span th:unless="${i <= reviewDTO.rating}" class="star">☆</span>
+                </th:block>
+            </div>
+        </div>
+        <div>
+            <label>감정</label>
+            <p class="form-control-static" th:text="${emoticonMap.get(reviewDTO.emotion)}"></p>
+        </div>
+        <div>
+            <label>등록일</label>
+            <p class="form-control-static" th:text="${#temporals.format(reviewDTO.regDate, 'yyyy-MM-dd HH:mm')}"></p>
+        </div>
+        <div>
+            <label>수정일</label>
+            <p class="form-control-static" th:text="${#temporals.format(reviewDTO.modDate, 'yyyy-MM-dd HH:mm')}"></p>
+        </div>
+
+        <div class="button-area">
+            <a th:href="@{/review/modify(review_id=${reviewDTO.review_id}, page=${pageRequestDTO.page}, size=${pageRequestDTO.size}, type=${pageRequestDTO.type}, keyword=${pageRequestDTO.keyword})}">
+                <button type="button">수정</button>
+            </a>
+            <button type="button" id="toListBtn">목록으로</button>
+        </div>
+    </div>
+</div>
+</body>
+<th:block layout:fragment="script">
+    <script th:inline="javascript">
+        document.getElementById('toListBtn').addEventListener('click', function() {
+            const page = [[${pageRequestDTO.page}]];
+            const size = [[${pageRequestDTO.size}]];
+            const type = [[${pageRequestDTO.type}]] || '';
+            const keyword = [[${pageRequestDTO.keyword}]] || '';
+
+            let url = `/review/list?page=${page}&size=${size}`;
+            if (type && keyword) {
+                url += `&type=${type}&keyword=${keyword}`;
+            }
+            window.location.href = url;
+        });
+    </script>
+</th:block>
+</html>
