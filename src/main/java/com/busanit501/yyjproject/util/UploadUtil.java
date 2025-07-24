@@ -22,8 +22,10 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import lombok.extern.log4j.Log4j2;
 
 @Component
+@Log4j2
 public class UploadUtil {
 
     @Value("${minio.url}")
@@ -74,6 +76,9 @@ public class UploadUtil {
             }
 
             String originalName = multipartFile.getOriginalFilename();
+            // 문제점: 파일명에 특수문자(예: 괄호)가 포함될 경우 MinIO 저장 시 문제가 발생하고,
+            // DTO의 link 생성 시 MinIO에 저장된 실제 파일명과 불일치하는 문제가 있었음.
+            // 해결: 특수문자를 제거한 안전한 파일명(safeFileName)을 사용하도록 함.
             String safeFileName = originalName.replaceAll("[^a-zA-Z0-9._-]", "");
             String uuid = UUID.randomUUID().toString();
             String objectKey = uuid + "_" + safeFileName;
@@ -110,9 +115,12 @@ public class UploadUtil {
                 e.printStackTrace();
             }
 
+            // 문제점: 이전에는 originalName을 DTO에 저장하여 MinIO에 저장된 safeFileName과 불일치했음.
+            // 해결: MinIO에 저장된 실제 파일명(safeFileName)을 DTO에 저장하여
+            // 썸네일/원본 이미지 조회 시 올바른 경로를 생성하도록 함.
             resultList.add(UploadResultDTO.builder()
                     .uuid(uuid)
-                    .fileName(originalName)
+                    .fileName(safeFileName)
                     .img(isImage)
                     .build());
         }

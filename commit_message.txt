@@ -1,11 +1,1 @@
-feat: 리뷰 별점 및 이모티콘 선택 기능 구현
-
-이 커밋은 다음 기능을 포함합니다:
-- 리뷰 등록 페이지에 별점 시스템 구현: 사용자가 별을 클릭하여 1점부터 5점까지 평점을 선택할 수 있습니다.
-- 리뷰 등록 페이지에 감정 이모티콘 선택 기능 추가.
-- 리뷰 목록 페이지에 별점 및 이모티콘 표시.
-- `SearchRequestDTO`의 `types` 필드를 단일 `type` 필드로 리팩토링.
-- `ReviewSearchImpl` 및 `ReviewServiceTests`를 `type` 필드 변경에 맞춰 업데이트.
-- 서버 시작 시 데이터 누적을 방지하기 위해 `ReviewRepositoryTests`의 더미 데이터 삽입 비활성화.
-- `register` 페이지의 CSS와 JavaScript를 외부 파일(`register.css`, `register.js`)로 분리.
-- `register.html`에 Thymeleaf 레이아웃 복원.
+MinIO 업로드 파일명 특수문자 처리

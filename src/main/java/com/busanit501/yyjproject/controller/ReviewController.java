@@ -7,11 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.busanit501.yyjproject.dto.PageRequestDTO;
@@ -135,20 +131,29 @@ public class ReviewController {
     }
 
     // MinIO에서 파일 가져오기
-    @GetMapping("/view/{fileName}")
-    public ResponseEntity<Resource> viewFile(@PathVariable String fileName) {
-        try {
-            ResponseInputStream<GetObjectResponse> object = uploadUtil.getFileFromMinio(fileName);
-            String contentType = object.response().contentType();
-            InputStreamResource resource = new InputStreamResource(object);
+    // 문제점: 이전에는 Content-Type이 MediaType.IMAGE_JPEG로 고정되어 있어
+    // JPEG가 아닌 다른 이미지 형식(PNG, GIF 등)이나 다른 파일 형식(PDF 등)을 요청할 경우
+    // 브라우저에서 올바르게 표시되지 않거나 다운로드되지 않는 문제가 있었음.
+    // 해결: MinIO에서 가져온 파일의 실제 Content-Type을 동적으로 설정하도록 수정.
+    @RestController @RequiredArgsConstructor
+    public class FileController {
+        private final UploadUtil uploadUtil;
 
-            return ResponseEntity.ok()
-                    .contentType(MediaType.parseMediaType(contentType))
-                    .body(resource);
-        } catch (Exception e) {
-            log.error("Error viewing file from MinIO: " + fileName, e);
-            return ResponseEntity.notFound().build();
+        @GetMapping("/view/{fileName}")
+        public ResponseEntity<byte[]> getFile( @PathVariable String fileName) {
+            try {
+                ResponseInputStream<GetObjectResponse> is = uploadUtil.getFileFromMinio(fileName);
+                byte[] data = is.readAllBytes();
+
+                return ResponseEntity.ok()
+                        .contentType(MediaType.parseMediaType(is.response().contentType())) // 동적으로 Content-Type 설정
+                        .body(data);
+            } catch (Exception e) {
+                log.error("파일 조회 실패: " + fileName, e);
+                return ResponseEntity.notFound().build();
+            }
         }
     }
+
 
 }
