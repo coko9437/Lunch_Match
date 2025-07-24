@@ -77,6 +77,11 @@ dependencies {
     // 원본 이미지 -> 작은 이미지 변환 도구,
     // https://mvnrepository.com/artifact/net.coobird/thumbnailator
     implementation group: 'net.coobird', name: 'thumbnailator', version: '0.4.20'
+
+
+
+    // 9 이메일 인증관련
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
 }
 
 tasks.named('test') {
