@@ -40,25 +40,34 @@
   - `POST /review/modify` (수정 처리)
 - **게시글 삭제:**
   - `POST /review/remove` (삭제 처리)
+- **파일 업로드/조회/삭제:**
+  - `POST /review/upload` (업로드 처리)
+  - `GET /view/{fileName}` (조회 처리, `FileController`)
+  - `DELETE /removeFile/{fileName}` (삭제 처리, `FileController`)
 
 ---
 
-## 5. 앞으로 개발할 기능
+## 5. 최근 진행한 작업 및 변경 사항
 
-### 리뷰 게시판 (Review Board)
-- **사진 업로드 기능:**
-  - 게시글 작성 및 수정 시 이미지 파일을 업로드하고, 서버에 저장하는 기능을 추가합니다.
-  - 업로드된 이미지를 게시글 조회 시 함께 볼 수 있도록 구현합니다.
-- **댓글 기능:**
-  - 각 리뷰 게시글에 댓글을 작성, 수정, 삭제할 수 있는 기능을 추가합니다.
-- **좋아요/추천 기능:**
-  - 각 리뷰 게시글에 '좋아요' 또는 '추천'을 할 수 있는 기능을 추가합니다.
+- **파일 업로드 인덱싱 오류 해결:**
+  - `register.js`에서 파일 업로드 시 인덱스를 소수점으로 계산하던 버그를 `Math.floor()`를 사용하여 정수로 수정하여 `InvalidPropertyException` 오류를 해결했습니다.
+- **리뷰 목록 썸네일 표시 기능 구현:**
+  - `list.html`에 썸네일 이미지와 업로드된 이미지 개수를 표시하는 UI를 추가했습니다.
+  - `UploadResultDTO`에 썸네일 링크를 반환하는 `getThumbnailLink()` 메서드를 추가했습니다.
+- **파일 조회 컨트롤러 분리 및 URL 수정:**
+  - 파일 조회를 담당하는 `FileController`를 별도로 생성했습니다.
+  - `list.html`에서 썸네일 이미지 요청 URL을 `/view/{fileName}`으로 수정하여 `FileController`와 연동했습니다.
 
 ---
 
 ## 6. 현재 문제점 및 다음 작업
-- **문제점:** `ReviewServiceTests`의 `testGetList()` 메서드가 `org.springframework.data.mapping.PropertyReferenceException` 오류로 실패했었으나, `ReviewSearchImpl`에서 정렬 로직을 수정하여 해결 시도.
+
+- **문제점:** 리뷰 목록 페이지에서 썸네일 이미지가 표시되지 않는 문제가 있습니다.
+  - **원인 추정:** `FileController`의 URL 경로 문제 또는 MinIO 파일 접근 관련 문제로 예상됩니다.
 - **다음 작업:**
-  1. `gradlew clean test` 명령을 다시 실행하여 모든 테스트가 통과하는지 최종 확인.
-  2. 테스트 통과 시, Thymeleaf 템플릿과 컨트롤러를 연결하여 화면 개발을 본격적으로 진행.
-  3. 위 '앞으로 개발할 기능' 목록에 따라 사진 업로드 기능부터 구현 시작.
+  1.  **썸네일 표시 문제 해결:**
+      - 브라우저 개발자 도구(F12)의 네트워크 탭에서 이미지 요청 URL이 올바른지, 서버로부터 404 오류 등이 발생하는지 확인합니다.
+      - `FileController`의 `@GetMapping("/view/{fileName}")`이 정상적으로 호출되는지 로그를 통해 확인합니다.
+      - `UploadUtil`의 `getFileFromMinio` 메서드가 MinIO에서 파일을 정상적으로 가져오는지 디버깅합니다.
+  2.  **기능 안정화:** 썸네일 문제가 해결되면, 파일 업로드, 조회, 삭제 기능 전반에 대한 테스트를 진행하여 안정성을 확보합니다.
+  3.  **다음 기능 개발:** 댓글 기능 또는 좋아요/추천 기능 개발을 시작합니다.

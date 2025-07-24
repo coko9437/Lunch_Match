@@ -1,6 +1,5 @@
 package com.busanit501.yyjproject.dto;
 
-import com.querydsl.core.types.OrderSpecifier;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

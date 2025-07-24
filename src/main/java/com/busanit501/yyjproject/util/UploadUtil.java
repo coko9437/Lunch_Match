@@ -9,6 +9,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -76,15 +77,13 @@ public class UploadUtil {
             }
 
             String originalName = multipartFile.getOriginalFilename();
-            // 문제점: 파일명에 특수문자(예: 괄호)가 포함될 경우 MinIO 저장 시 문제가 발생하고,
-            // DTO의 link 생성 시 MinIO에 저장된 실제 파일명과 불일치하는 문제가 있었음.
-            // 해결: 특수문자를 제거한 안전한 파일명(safeFileName)을 사용하도록 함.
-            String safeFileName = originalName.replaceAll("[^a-zA-Z0-9._-]", "");
             String uuid = UUID.randomUUID().toString();
-            String objectKey = uuid + "_" + safeFileName;
 
             boolean isImage = false;
             try {
+                String encodedFileName = java.net.URLEncoder.encode(originalName, "UTF-8").replaceAll("\\+", "%20");
+                String objectKey = uuid + "_" + encodedFileName;
+
                 // 원본 파일 업로드
                 PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                         .bucket(minioBucketName)
@@ -112,15 +111,12 @@ public class UploadUtil {
                             thumbnailInputStream, thumbnailOutputStream.size()));
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error("파일 업로드 중 오류 발생: " + originalName, e);
             }
 
-            // 문제점: 이전에는 originalName을 DTO에 저장하여 MinIO에 저장된 safeFileName과 불일치했음.
-            // 해결: MinIO에 저장된 실제 파일명(safeFileName)을 DTO에 저장하여
-            // 썸네일/원본 이미지 조회 시 올바른 경로를 생성하도록 함.
             resultList.add(UploadResultDTO.builder()
                     .uuid(uuid)
-                    .fileName(safeFileName)
+                    .fileName(originalName) // 원본 파일명 저장
                     .img(isImage)
                     .build());
         }
@@ -133,5 +129,44 @@ public class UploadUtil {
                 .key(objectKey)
                 .build();
         return s3Client.getObject(getObjectRequest);
+    }
+
+    public void deleteFileFromMinio(String objectKey) {
+        try {
+            // 원본 파일 삭제
+            DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
+                    .bucket(minioBucketName)
+                    .key(objectKey)
+                    .build();
+            s3Client.deleteObject(deleteObjectRequest);
+            log.info("Deleted original file from MinIO: " + objectKey);
+
+            // 썸네일 파일 삭제 (만약 썸네일이 있다면)
+            // 이 부분은 objectKey가 썸네일인 경우 원본을, 원본인 경우 썸네일을 삭제하도록 로직이 복잡하게 되어 있습니다.
+            // MinIO에 저장된 objectKey는 UUID_EncodedFileName 형태이므로,
+            // 썸네일은 s_UUID_EncodedFileName 형태입니다.
+            // 따라서 objectKey가 's_'로 시작하면 썸네일이고, 그렇지 않으면 원본입니다.
+            if (objectKey.startsWith("s_")) { // 썸네일 파일 삭제 요청이 들어온 경우
+                // 원본 파일의 objectKey를 추정하여 삭제 시도
+                String originalObjectKey = objectKey.substring(2); // 's_' 제거
+                DeleteObjectRequest deleteOriginalRequest = DeleteObjectRequest.builder()
+                        .bucket(minioBucketName)
+                        .key(originalObjectKey)
+                        .build();
+                s3Client.deleteObject(deleteOriginalRequest);
+                log.info("Deleted associated original file from MinIO: " + originalObjectKey);
+            } else { // 원본 파일 삭제 요청이 들어온 경우
+                // 썸네일 파일의 objectKey를 추정하여 삭제 시도
+                String thumbnailObjectKey = "s_" + objectKey;
+                DeleteObjectRequest deleteThumbnailRequest = DeleteObjectRequest.builder()
+                        .bucket(minioBucketName)
+                        .key(thumbnailObjectKey)
+                        .build();
+                s3Client.deleteObject(deleteThumbnailRequest);
+                log.info("Deleted associated thumbnail file from MinIO: " + thumbnailObjectKey);
+            }
+        } catch (Exception e) {
+            log.error("Error deleting file from MinIO: " + objectKey, e);
+        }
     }
 }

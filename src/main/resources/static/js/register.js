@@ -67,35 +67,58 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             console.log('Upload successful:', data);
-            uploadResultDiv.innerHTML = ''; // 기존 미리보기 초기화
-            data.forEach((fileInfo, index) => {
-                const imgPath = fileInfo.img ? `/view/${fileInfo.link}` : `/view/${fileInfo.link}`;
+            // uploadResultDiv.innerHTML = ''; // 이 라인을 제거하여 기존 미리보기를 유지
+
+            data.forEach((fileInfo) => {
+                const fileContainer = document.createElement('div');
+                fileContainer.className = 'file-item'; // CSS 스타일링을 위한 클래스 추가
+                fileContainer.dataset.uuid = fileInfo.uuid; // 삭제를 위해 uuid 저장
+
+                const imgPath = `/view/${fileInfo.link}`;
                 const imgElement = document.createElement('img');
                 imgElement.src = imgPath;
                 imgElement.alt = fileInfo.fileName;
                 imgElement.style.maxWidth = '100px';
                 imgElement.style.maxHeight = '100px';
                 imgElement.style.margin = '5px';
-                uploadResultDiv.appendChild(imgElement);
+                fileContainer.appendChild(imgElement);
+
+                const fileNameSpan = document.createElement('span');
+                fileNameSpan.textContent = fileInfo.fileName;
+                fileContainer.appendChild(fileNameSpan);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'X';
+                deleteButton.className = 'delete-button'; // CSS 스타일링을 위한 클래스 추가
+                deleteButton.type = 'button'; // 폼 제출을 막습니다.
+                deleteButton.dataset.uuid = fileInfo.uuid;
+                deleteButton.dataset.fileName = fileInfo.fileName;
+                deleteButton.addEventListener('click', function() {
+                    removeFile(fileInfo.uuid, fileInfo.fileName, fileContainer);
+                });
+                fileContainer.appendChild(deleteButton);
+
+                uploadResultDiv.appendChild(fileContainer);
 
                 // 숨겨진 input 필드 추가하여 DTO에 파일 정보 전송
-                // Spring MVC가 List<UploadResultDTO>를 바인딩할 수 있도록 인덱싱된 이름 사용
+                const newIndex = Math.floor(form.querySelectorAll('input[name^="uploadFileNames"]').length / 3);
+
                 const uuidInput = document.createElement('input');
                 uuidInput.type = 'hidden';
-                uuidInput.name = `uploadFileNames[${index}].uuid`;
+                uuidInput.name = `uploadFileNames[${newIndex}].uuid`;
                 uuidInput.value = fileInfo.uuid;
                 form.appendChild(uuidInput);
 
                 const fileNameInput = document.createElement('input');
                 fileNameInput.type = 'hidden';
-                fileNameInput.name = `uploadFileNames[${index}].fileName`;
+                fileNameInput.name = `uploadFileNames[${newIndex}].fileName`;
                 fileNameInput.value = fileInfo.fileName;
                 form.appendChild(fileNameInput);
 
                 const imgInput = document.createElement('input');
                 imgInput.type = 'hidden';
-                imgInput.name = `uploadFileNames[${index}].img`;
-                imgInput.value = fileInfo.img; // boolean 값은 "true" 또는 "false" 문자열로 전송
+                imgInput.name = `uploadFileNames[${newIndex}].img`;
+                imgInput.value = fileInfo.img;
                 form.appendChild(imgInput);
             });
         })
@@ -104,4 +127,28 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('파일 업로드에 실패했습니다.');
         });
     });
+
+    // 파일 삭제 로직
+    function removeFile(uuid, fileName, elementToRemove) {
+        console.log(`Attempting to delete file: ${uuid}_${fileName}`);
+        fetch(`/removeFile/${uuid}_${fileName}`, { // 백엔드 삭제 엔드포인트 호출
+            method: 'DELETE'
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log('File deleted successfully from server.');
+                elementToRemove.remove();
+
+                const hiddenInputs = form.querySelectorAll(`input[name^="uploadFileNames"][value="${uuid}"]`);
+                hiddenInputs.forEach(input => input.remove());
+            } else {
+                console.error('Failed to delete file from server.');
+                alert('파일 삭제에 실패했습니다.');
+            }
+        })
+        .catch(error => {
+            console.error('Error during file deletion:', error);
+            alert('파일 삭제 중 오류가 발생했습니다.');
+        });
+    }
 });
