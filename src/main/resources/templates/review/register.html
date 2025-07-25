@@ -38,6 +38,9 @@
         <div id="uploadResult" class="upload-result-area">
             <!-- 업로드된 파일 미리보기가 여기에 표시됩니다. -->
         </div>
+        <div id="uploadLoading" class="upload-loading-area" style="display: none;">
+            파일 업로드 중...
+        </div>
 
         <label for="emotion">감정:</label>
         <select id="emotion" name="emotion" required>
@@ -45,7 +48,7 @@
                     th:text="${emoticonMap.get(entry.key)}"></option>
         </select>
         <div>
-            <button type="submit">등록</button>
+            <button type="submit" id="submitButton" disabled>등록</button>
         </div>
     </form>
 

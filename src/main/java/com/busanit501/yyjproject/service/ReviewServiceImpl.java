@@ -5,12 +5,15 @@ import com.busanit501.yyjproject.dto.PageRequestDTO;
 import com.busanit501.yyjproject.dto.PageResponseDTO;
 import com.busanit501.yyjproject.dto.ReviewDTO;
 import com.busanit501.yyjproject.repository.ReviewRepository;
+import com.busanit501.yyjproject.util.UploadUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Async;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,6 +25,7 @@ public class ReviewServiceImpl implements ReviewService {
 
     private final ModelMapper modelMapper;
     private final ReviewRepository reviewRepository;
+    private final UploadUtil uploadUtil;
 
     @Override
     public Long register(ReviewDTO reviewDTO) {
@@ -47,7 +51,7 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public ReviewDTO readOne(Long review_id) {
-        java.util.Optional<Review> result = reviewRepository.findById(review_id);
+        java.util.Optional<Review> result = reviewRepository.findByIdWithFiles(review_id);
         Review review = result.orElseThrow();
         ReviewDTO reviewDTO = modelMapper.map(review, ReviewDTO.class);
         return reviewDTO;
@@ -72,14 +76,36 @@ public class ReviewServiceImpl implements ReviewService {
         reviewRepository.save(review);
     }
 
+    @Transactional
     @Override
     public void remove(Long review_id) {
+        java.util.Optional<Review> result = reviewRepository.findByIdWithFiles(review_id);
+        Review review = result.orElseThrow();
+
+        // MinIO에서 파일 삭제
+        if (review.getFileList() != null && !review.getFileList().isEmpty()) {
+            review.getFileList().forEach(file -> {
+                String objectKey = file.getLink(); // UploadResult의 getLink()는 원본 파일명을 포함한 objectKey 반환
+                deleteFileAsync(objectKey);
+            });
+        }
+
         reviewRepository.deleteById(review_id);
+    }
+
+    @Async
+    public void deleteFileAsync(String objectKey) {
+        try {
+            uploadUtil.deleteFileFromMinio(objectKey);
+            log.info("Async delete successful for: " + objectKey);
+        } catch (Exception e) {
+            log.error("Async delete failed for: " + objectKey, e);
+        }
     }
 
     @Override
     public PageResponseDTO<ReviewDTO> getList(PageRequestDTO pageRequestDTO) {
-        Page<Review> result = reviewRepository.searchAll(pageRequestDTO);
+        Page<Review> result = reviewRepository.searchAll(pageRequestDTO, pageRequestDTO.getPageable(Sort.by("review_id").descending()));
 
         List<ReviewDTO> dtoList = result.getContent().stream()
                 .map(review -> modelMapper.map(review, ReviewDTO.class))

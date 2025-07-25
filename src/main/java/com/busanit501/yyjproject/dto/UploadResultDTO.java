@@ -15,11 +15,7 @@ public class UploadResultDTO {
     private boolean img;
 
     public String getLink() {
-        if(img){
-            return "s_" + uuid + "_" + fileName; // 썸네일 경로
-        } else {
-            return uuid + "_" + fileName;
-        }
+        return uuid + "_" + fileName;
     }
 
     public String getThumbnailLink() {

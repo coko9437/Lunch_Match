@@ -47,88 +47,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // 파일 업로드 로직
     const fileInput = document.getElementById('fileInput');
     const uploadResultDiv = document.getElementById('uploadResult');
+    const uploadLoadingDiv = document.getElementById('uploadLoading'); // 로딩 div 추가
+    const submitButton = document.getElementById('submitButton'); // submit 버튼 추가
     const form = document.querySelector('form');
 
-    fileInput.addEventListener('change', function(e) {
-        const files = e.target.files;
-        if (files.length === 0) {
-            return;
-        }
+    console.log(`uploadLoadingDiv found: ${uploadLoadingDiv !== null}`);
+    console.log(`submitButton found: ${submitButton !== null}`);
 
-        const formData = new FormData();
-        for (let i = 0; i < files.length; i++) {
-            formData.append('files', files[i]);
-        }
-
-        fetch('/review/upload', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Upload successful:', data);
-            // uploadResultDiv.innerHTML = ''; // 이 라인을 제거하여 기존 미리보기를 유지
-
-            data.forEach((fileInfo) => {
-                const fileContainer = document.createElement('div');
-                fileContainer.className = 'file-item'; // CSS 스타일링을 위한 클래스 추가
-                fileContainer.dataset.uuid = fileInfo.uuid; // 삭제를 위해 uuid 저장
-
-                const imgPath = `/view/${fileInfo.link}`;
-                const imgElement = document.createElement('img');
-                imgElement.src = imgPath;
-                imgElement.alt = fileInfo.fileName;
-                imgElement.style.maxWidth = '100px';
-                imgElement.style.maxHeight = '100px';
-                imgElement.style.margin = '5px';
-                fileContainer.appendChild(imgElement);
-
-                const fileNameSpan = document.createElement('span');
-                fileNameSpan.textContent = fileInfo.fileName;
-                fileContainer.appendChild(fileNameSpan);
-
-                const deleteButton = document.createElement('button');
-                deleteButton.textContent = 'X';
-                deleteButton.className = 'delete-button'; // CSS 스타일링을 위한 클래스 추가
-                deleteButton.type = 'button'; // 폼 제출을 막습니다.
-                deleteButton.dataset.uuid = fileInfo.uuid;
-                deleteButton.dataset.fileName = fileInfo.fileName;
-                deleteButton.addEventListener('click', function() {
-                    removeFile(fileInfo.uuid, fileInfo.fileName, fileContainer);
-                });
-                fileContainer.appendChild(deleteButton);
-
-                uploadResultDiv.appendChild(fileContainer);
-
-                // 숨겨진 input 필드 추가하여 DTO에 파일 정보 전송
-                const newIndex = Math.floor(form.querySelectorAll('input[name^="uploadFileNames"]').length / 3);
-
-                const uuidInput = document.createElement('input');
-                uuidInput.type = 'hidden';
-                uuidInput.name = `uploadFileNames[${newIndex}].uuid`;
-                uuidInput.value = fileInfo.uuid;
-                form.appendChild(uuidInput);
-
-                const fileNameInput = document.createElement('input');
-                fileNameInput.type = 'hidden';
-                fileNameInput.name = `uploadFileNames[${newIndex}].fileName`;
-                fileNameInput.value = fileInfo.fileName;
-                form.appendChild(fileNameInput);
-
-                const imgInput = document.createElement('input');
-                imgInput.type = 'hidden';
-                imgInput.name = `uploadFileNames[${newIndex}].img`;
-                imgInput.value = fileInfo.img;
-                form.appendChild(imgInput);
-            });
-        })
-        .catch(error => {
-            console.error('Upload failed:', error);
-            alert('파일 업로드에 실패했습니다.');
-        });
-    });
-
-    // 파일 삭제 로직
+    // 파일 삭제 로직 (함수를 DOMContentLoaded 스코프 밖으로 이동하여 전역 접근 가능하게 함)
     function removeFile(uuid, fileName, elementToRemove) {
         console.log(`Attempting to delete file: ${uuid}_${fileName}`);
         fetch(`/removeFile/${uuid}_${fileName}`, { // 백엔드 삭제 엔드포인트 호출
@@ -151,4 +77,138 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('파일 삭제 중 오류가 발생했습니다.');
         });
     }
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const files = e.target.files;
+            if (files.length === 0) {
+                return;
+            }
+
+            // 현재 업로드된 파일명 목록 가져오기
+            const existingFileNames = Array.from(uploadResultDiv.querySelectorAll('.file-item span'))
+                                        .map(span => span.textContent);
+            console.log('Existing file names:', existingFileNames);
+
+            const filesToUpload = [];
+            let hasDuplicate = false;
+
+            for (let i = 0; i < files.length; i++) {
+                const newFile = files[i];
+                if (existingFileNames.includes(newFile.name)) {
+                    alert(`경고: '${newFile.name}' 파일은 이미 존재합니다. 중복 업로드할 수 없습니다.`);
+                    hasDuplicate = true;
+                } else {
+                    filesToUpload.push(newFile);
+                }
+            }
+
+            if (filesToUpload.length === 0) {
+                // 업로드할 파일이 없으면 로딩 표시 및 버튼 상태 변경하지 않음
+                return;
+            }
+
+            // 업로드 시작 시 로딩 표시 및 버튼 비활성화
+            if (uploadLoadingDiv) {
+                uploadLoadingDiv.style.display = 'block';
+                console.log('Upload loading div displayed.');
+            }
+            if (submitButton) {
+                submitButton.disabled = true;
+                console.log('Submit button disabled.');
+            }
+
+            const formData = new FormData();
+            filesToUpload.forEach(file => {
+                formData.append('files', file);
+            });
+
+            fetch('/review/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Upload successful:', data);
+
+                data.forEach((fileInfo) => {
+                    const fileContainer = document.createElement('div');
+                    fileContainer.className = 'file-item';
+                    fileContainer.dataset.uuid = fileInfo.uuid;
+
+                    const imgPath = `/view/${fileInfo.link}`;
+                    const imgElement = document.createElement('img');
+                    imgElement.src = imgPath;
+                    imgElement.alt = fileInfo.fileName;
+                    imgElement.style.maxWidth = '100px';
+                    imgElement.style.maxHeight = '100px';
+                    imgElement.style.margin = '5px';
+                    fileContainer.appendChild(imgElement);
+
+                    const fileNameSpan = document.createElement('span');
+                    fileNameSpan.textContent = fileInfo.fileName;
+                    fileContainer.appendChild(fileNameSpan);
+
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'X';
+                    deleteButton.className = 'delete-button';
+                    deleteButton.type = 'button';
+                    deleteButton.dataset.uuid = fileInfo.uuid;
+                    deleteButton.dataset.fileName = fileInfo.fileName;
+                    deleteButton.addEventListener('click', function() {
+                        removeFile(fileInfo.uuid, fileInfo.fileName, fileContainer);
+                    });
+                    fileContainer.appendChild(deleteButton);
+
+                    uploadResultDiv.appendChild(fileContainer);
+
+                    const newIndex = Math.floor(form.querySelectorAll('input[name^="uploadFileNames"]').length / 3);
+
+                    const uuidInput = document.createElement('input');
+                    uuidInput.type = 'hidden';
+                    uuidInput.name = `uploadFileNames[${newIndex}].uuid`;
+                    uuidInput.value = fileInfo.uuid;
+                    form.appendChild(uuidInput);
+
+                    const fileNameInput = document.createElement('input');
+                    fileNameInput.type = 'hidden';
+                    fileNameInput.name = `uploadFileNames[${newIndex}].fileName`;
+                    fileNameInput.value = fileInfo.fileName;
+                    form.appendChild(fileNameInput);
+
+                    const imgInput = document.createElement('input');
+                    imgInput.type = 'hidden';
+                    imgInput.name = `uploadFileNames[${newIndex}].img`;
+                    imgInput.value = fileInfo.img;
+                    form.appendChild(imgInput);
+                });
+            })
+            .catch(error => {
+                console.error('Upload failed:', error);
+                alert('파일 업로드에 실패했습니다.');
+            })
+            .finally(() => {
+                // 업로드 완료 시 로딩 숨김 및 버튼 활성화
+                if (uploadLoadingDiv) {
+                    uploadLoadingDiv.style.display = 'none';
+                    console.log('Upload loading div hidden.');
+                }
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    console.log('Submit button enabled.');
+                }
+            });
+        });
+    }
+
+    // modify.html에서 기존 이미지 삭제 버튼에 이벤트 리스너 추가
+    const existingDeleteButtons = uploadResultDiv.querySelectorAll('.delete-button');
+    existingDeleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const uuid = this.dataset.uuid;
+            const fileName = this.dataset.fileName;
+            const fileContainer = this.closest('.file-item');
+            removeFile(uuid, fileName, fileContainer);
+        });
+    });
 });

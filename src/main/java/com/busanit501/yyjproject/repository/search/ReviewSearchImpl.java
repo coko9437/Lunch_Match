@@ -22,9 +22,11 @@ public class ReviewSearchImpl extends QuerydslRepositorySupport implements Revie
     }
 
     @Override
-    public Page<Review> searchAll(PageRequestDTO pageRequestDTO) {
+    public Page<Review> searchAll(PageRequestDTO pageRequestDTO, Pageable pageable) {
         QReview review = QReview.review;
         JPQLQuery<Review> query = from(review);
+
+        query.leftJoin(review.fileList).fetchJoin(); // fileList를 Fetch Join
 
         // 검색 조건 추가
         if (pageRequestDTO.getType() != null && !pageRequestDTO.getType().isEmpty() && pageRequestDTO.getKeyword() != null) {
@@ -52,9 +54,6 @@ public class ReviewSearchImpl extends QuerydslRepositorySupport implements Revie
 
         // 전체 개수를 가져오기 위한 쿼리 (페이징 적용 전)
         JPQLQuery<Review> countQuery = query; // 기존 쿼리 복사
-
-        // 페이징 조건 추가
-        Pageable pageable = pageRequestDTO.getPageable(Sort.by("review_id").descending()); // 기본 정렬 추가
 
         // 정렬 적용
         pageable.getSort().forEach(sort -> {

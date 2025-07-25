@@ -46,12 +46,17 @@
         <input type="file" id="fileInput" multiple>
         <div id="uploadResult" class="upload-result-area">
             <!-- 기존 이미지 및 새로 업로드된 이미지 미리보기가 여기에 표시됩니다. -->
-            <div th:each="fileInfo : ${reviewDTO.uploadFileNames}" class="image-item">
-                <img th:src="@{/review/view/{fileName}(fileName=${fileInfo.link})}" th:alt="${fileInfo.fileName}" style="max-width: 100px; max-height: 100px; margin: 5px;">
-                <input type="hidden" name="uploadFileNames[__${status.index}__].uuid" th:value="${fileInfo.uuid}">
-                <input type="hidden" name="uploadFileNames[__${status.index}__].fileName" th:value="${fileInfo.fileName}">
-                <input type="hidden" name="uploadFileNames[__${status.index}__].img" th:value="${fileInfo.img}">
+            <div th:each="fileInfo, stat : ${reviewDTO.uploadFileNames}" class="file-item" th:data-uuid="${fileInfo.uuid}">
+                <img th:src="@{/view/{fileName}(fileName=${fileInfo.thumbnailLink})}" th:alt="${fileInfo.fileName}" style="max-width: 100px; max-height: 100px; margin: 5px;">
+                <span th:text="${fileInfo.fileName}"></span>
+                <button type="button" class="delete-button" th:data-uuid="${fileInfo.uuid}" th:data-file-name="${fileInfo.fileName}">X</button>
+                <input type="hidden" name="uploadFileNames[__${stat.index}__].uuid" th:value="${fileInfo.uuid}">
+                <input type="hidden" name="uploadFileNames[__${stat.index}__].fileName" th:value="${fileInfo.fileName}">
+                <input type="hidden" name="uploadFileNames[__${stat.index}__].img" th:value="${fileInfo.img}">
             </div>
+        </div>
+        <div id="uploadLoading" class="upload-loading-area" style="display: none;">
+            파일 업로드 중...
         </div>
 
         <label for="emotion">감정</label>
@@ -62,7 +67,7 @@
         </select>
 
         <div class="button-area">
-            <button type="submit">수정 완료</button>
+            <button type="submit" id="submitButton" disabled>수정 완료</button>
             <button type="button" id="deleteBtn">삭제</button>
             <button type="button" id="cancelBtn">취소</button>
         </div>
@@ -81,6 +86,7 @@
 <th:block layout:fragment="script">
     <script th:src="@{/js/register.js}"></script>
     <script th:inline="javascript">
+        const uploadFileNames = [[${reviewDTO.uploadFileNames}]];
         // Set initial rating value for stars
         const initialRating = document.getElementById('rating').value;
         const stars = document.querySelectorAll('#star-rating .star');
@@ -112,5 +118,6 @@
             window.location.href = url;
         });
     </script>
+    <script th:src="@{/js/review-detail.js}"></script>
 </th:block>
 </html>

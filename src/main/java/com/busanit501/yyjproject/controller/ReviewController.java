@@ -80,7 +80,7 @@ public class ReviewController {
     @ResponseBody
     public List<UploadResultDTO> upload(List<MultipartFile> files) {
         log.info("upload POST...");
-        return uploadUtil.uploadFiles(files);
+        return uploadUtil.uploadFiles(files).join();
     }
 
     @GetMapping({"/read", "/modify"})
@@ -128,5 +128,15 @@ public class ReviewController {
         model.addAttribute("responseDTO", responseDTO);
         model.addAttribute("emotionMap", emotionMap);
         model.addAttribute("emoticonMap", emoticonMap); // 이모티콘 맵 추가 // 감정 맵 추가
+
+        // 각 ReviewDTO의 uploadFileNames 확인 로그 추가
+        responseDTO.getDtoList().forEach(reviewDTO -> {
+            if (reviewDTO.getUploadFileNames() != null && !reviewDTO.getUploadFileNames().isEmpty()) {
+                log.info("Review ID: " + reviewDTO.getReview_id() + ", Files: " + reviewDTO.getUploadFileNames().size());
+                reviewDTO.getUploadFileNames().forEach(file -> log.info("  File: " + file.getFileName() + ", Link: " + file.getLink()));
+            } else {
+                log.info("Review ID: " + reviewDTO.getReview_id() + ", No files.");
+            }
+        });
     }
 }

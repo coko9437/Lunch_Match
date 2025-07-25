@@ -55,9 +55,20 @@
 
         <div th:if="${reviewDTO.uploadFileNames != null and !reviewDTO.uploadFileNames.isEmpty()}">
             <label>첨부 이미지</label>
-            <div class="image-preview-area">
-                <div th:each="fileInfo : ${reviewDTO.uploadFileNames}" class="image-item">
-                    <img th:src="@{/review/view/{fileName}(fileName=${fileInfo.link})}" th:alt="${fileInfo.fileName}" style="max-width: 150px; max-height: 150px; margin: 5px;">
+            <div class="image-gallery">
+                <div class="main-image-container">
+                    <img id="mainImage" th:if="${reviewDTO.uploadFileNames != null and !reviewDTO.uploadFileNames.isEmpty()}"
+                         th:src="@{/view/{fileName}(fileName=${reviewDTO.uploadFileNames[0].link})}" alt="리뷰 이미지">
+                    <button type="button" class="nav-button prev-button">&lt;</button>
+                    <button type="button" class="nav-button next-button">&gt;</button>
+                </div>
+                <div class="thumbnail-strip">
+                    <img th:each="fileInfo, stat : ${reviewDTO.uploadFileNames}"
+                         th:src="@{/view/{fileName}(fileName=${fileInfo.thumbnailLink})}"
+                         alt="썸네일 이미지"
+                         th:classappend="${stat.index == 0 ? 'active-thumbnail' : ''}"
+                         th:data-index="${stat.index}"
+                         class="thumbnail">
                 </div>
             </div>
         </div>
@@ -73,6 +84,7 @@
 </body>
 <th:block layout:fragment="script">
     <script th:inline="javascript">
+        const uploadFileNames = [[${reviewDTO.uploadFileNames}]];
         document.getElementById('toListBtn').addEventListener('click', function() {
             const page = [[${pageRequestDTO.page}]];
             const size = [[${pageRequestDTO.size}]];
@@ -86,5 +98,6 @@
             window.location.href = url;
         });
     </script>
+    <script th:src="@{/js/review-detail.js}"></script>
 </th:block>
 </html>

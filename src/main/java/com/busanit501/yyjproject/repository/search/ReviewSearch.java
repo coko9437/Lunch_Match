@@ -5,5 +5,5 @@ import com.busanit501.yyjproject.dto.PageRequestDTO;
 import org.springframework.data.domain.Page;
 
 public interface ReviewSearch {
-    Page<Review> searchAll(PageRequestDTO pageRequestDTO);
+    Page<Review> searchAll(PageRequestDTO pageRequestDTO, org.springframework.data.domain.Pageable pageable);
 }

@@ -28,6 +28,9 @@ public class RootConfig {
         modelMapper.createTypeMap(com.busanit501.yyjproject.dto.UploadResultDTO.class, com.busanit501.yyjproject.domain.UploadResult.class)
                 .addMapping(UploadResultDTO::isImg, UploadResult::setIsImage);
 
+        modelMapper.createTypeMap(com.busanit501.yyjproject.domain.Review.class, com.busanit501.yyjproject.dto.ReviewDTO.class)
+                .addMapping(com.busanit501.yyjproject.domain.Review::getFileList, com.busanit501.yyjproject.dto.ReviewDTO::setUploadFileNames);
+
         return modelMapper;
     }
 }

@@ -28,20 +28,7 @@
 
 ### 리뷰 게시판 (Review Board)
 - **전체 목록 조회 (페이징 포함):**
-  - `GET /review/list`
-  - QueryDSL을 이용한 동적 검색 및 페이징 처리 기능이 구현되었습니다.
-- **게시글 등록:**
-  - `GET /review/register` (등록 페이지)
-  - `POST /review/register` (등록 처리)
-- **게시글 상세 조회:**
-  - `GET /review/read?review_id={id}`
-- **게시글 수정:**
-  - `GET /review/modify?review_id={id}` (수정 페이지)
-  - `POST /review/modify` (수정 처리)
-- **게시글 삭제:**
-  - `POST /review/remove` (삭제 처리)
-- **파일 업로드/조회/삭제:**
-  - `POST /review/upload` (업로드 처리)
+  - `GET /revie
   - `GET /view/{fileName}` (조회 처리, `FileController`)
   - `DELETE /removeFile/{fileName}` (삭제 처리, `FileController`)
 

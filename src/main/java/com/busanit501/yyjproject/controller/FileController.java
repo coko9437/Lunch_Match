@@ -10,6 +10,7 @@ import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
 @RestController
@@ -28,16 +29,35 @@ public class FileController {
      */
 
 
+    private String getMinioObjectKey(String decodedFileName) throws UnsupportedEncodingException {
+        int lastUnderscore = decodedFileName.lastIndexOf('_');
+        if (lastUnderscore == -1) {
+            return URLEncoder.encode(decodedFileName, "UTF-8").replaceAll("\\+", "%20");
+        }
+
+        String prefixPart = decodedFileName.substring(0, lastUnderscore + 1);
+        String originalFileNamePart = decodedFileName.substring(lastUnderscore + 1);
+
+        String encodedOriginalFileName = URLEncoder.encode(originalFileNamePart, "UTF-8").replaceAll("\\+", "%20");
+
+        return prefixPart + encodedOriginalFileName;
+    }
+
+
     @GetMapping("/view/{fileName}")
     public ResponseEntity<byte[]> getFile(@PathVariable String fileName) {
         try {
-            // @PathVariable로 받은 fileName은 디코딩된 상태이므로, MinIO 요청을 위해 다시 URL 인코딩
-            String encodedFileName = URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
-            ResponseInputStream<GetObjectResponse> is = uploadUtil.getFileFromMinio(encodedFileName);
+            String objectKey = getMinioObjectKey(fileName);
+            log.info("Attempting to get file from MinIO with objectKey: " + objectKey);
+
+            ResponseInputStream<GetObjectResponse> is = uploadUtil.getFileFromMinio(objectKey);
             byte[] data = is.readAllBytes();
+            log.info("File data size: " + data.length + " bytes");
+            String contentType = is.response().contentType();
+            log.info("Content-Type from MinIO: " + contentType);
 
             return ResponseEntity.ok()
-                    .contentType(MediaType.parseMediaType(is.response().contentType())) // 동적으로 Content-Type 설정
+                    .contentType(MediaType.parseMediaType(contentType))
                     .body(data);
         } catch (Exception e) {
             log.error("파일 조회 실패: " + fileName, e);
@@ -49,9 +69,10 @@ public class FileController {
     @DeleteMapping("/removeFile/{fileName}")
     public ResponseEntity<String> removeFile(@PathVariable String fileName) {
         try {
-            // @PathVariable로 받은 fileName은 디코딩된 상태이므로, MinIO 요청을 위해 다시 URL 인코딩
-            String encodedFileName = URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
-            uploadUtil.deleteFileFromMinio(encodedFileName);
+            String objectKey = getMinioObjectKey(fileName);
+            log.info("Attempting to delete file from MinIO with objectKey: " + objectKey);
+
+            uploadUtil.deleteFileFromMinio(objectKey);
             return ResponseEntity.ok("File deleted successfully");
         } catch (Exception e) {
             log.error("파일 삭제 실패: " + fileName, e);
