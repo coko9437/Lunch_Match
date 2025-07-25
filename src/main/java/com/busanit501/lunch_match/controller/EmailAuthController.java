@@ -1,6 +1,6 @@
 package com.busanit501.lunch_match.controller;
 
-import com.busanit501.lunch_match.Service.EmailAuthService;
+import com.busanit501.lunch_match.service.EmailAuthService;
 import com.busanit501.lunch_match.dto.EmailAuthRequestDTO;
 import com.busanit501.lunch_match.dto.EmailAuthVerifyDTO;
 import lombok.RequiredArgsConstructor;

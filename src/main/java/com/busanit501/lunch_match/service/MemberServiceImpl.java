@@ -1,0 +1,175 @@
+package com.busanit501.lunch_match.service;
+
+import com.busanit501.lunch_match.domain.Member;
+import com.busanit501.lunch_match.domain.MemberRole;
+import com.busanit501.lunch_match.dto.MemberSignupDTO;
+import com.busanit501.lunch_match.dto.ProfileDTO;
+import com.busanit501.lunch_match.repository.MemberRepository;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import net.coobird.thumbnailator.Thumbnailator;
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+@Log4j2
+@Transactional
+public class MemberServiceImpl implements  MemberService {
+
+    private final MemberRepository memberRepository;
+    private final ModelMapper modelMapper;
+    private PasswordEncoder passwordEncoder;
+
+    @Value("${com.busanit501.upload.path}") // application.properties에서 파일 업로드 경로 주입
+    private String uploadPath;
+
+    @Override
+    public Long SignupMember(MemberSignupDTO memberSignupDTO, ProfileDTO profileDTO) {
+        // 1. DTO 유효성 검증 (Controller에서 @Valid로 처리되지만, 서비스에서도 핵심 로직 전 검증 권장)
+        // 비밀번호와 비밀번호 확인 일치 여부
+        if (!memberSignupDTO.getPassword().equals(memberSignupDTO.getConfirmPassword())) {
+            throw new IllegalArgumentException("비밀번호와 비밀번호 확인이 일치하지 않습니다.");
+        }
+
+        // 중복 확인
+        if (nameExists(memberSignupDTO.getUsername())) {
+            throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
+        }
+        if (emailExists(memberSignupDTO.getEmail())) {
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+        }
+        if (phoneNumberExists(memberSignupDTO.getPhoneNumber())) {
+            throw new IllegalArgumentException("이미 사용 중인 전화번호입니다.");
+        }
+
+        // 닉네임 중복 처리 (랜덤 숫자 추가)
+        String finalNickname = memberSignupDTO.getNickname();
+        if (nicknameExists(finalNickname)) {
+            finalNickname = generateUniqueNickname(finalNickname);
+        }
+
+        // 2. MemberSignupDTO -> Member Entity 변환
+        Member member = modelMapper.map(memberSignupDTO, Member.class);
+
+        // 3. 비밀번호 암호화
+        member.changePassword(passwordEncoder.encode(memberSignupDTO.getPassword()));
+
+        // 4. 최종 닉네임 설정
+        member.addNickname(finalNickname); // Member 엔티티에 닉네임 필드에 값을 설정하는 메서드 추가 필요
+
+        // 5. 기본 역할 부여 (예: USER)
+        member.addRole(MemberRole.USER);
+
+        // 6. 프로필 사진 처리
+        if (profileDTO != null && profileDTO.getFile() != null && !profileDTO.getFile().isEmpty()) {
+            MultipartFile multipartFile = profileDTO.getFile();
+            String originalFileName = multipartFile.getOriginalFilename();
+            String uuid = UUID.randomUUID().toString();
+            String savedFileName = uuid + "_" + originalFileName;
+
+            // 저장 경로 생성 (년/월/일 폴더 구조)
+            String folderPath = makeFolder();
+            Path savePath = Paths.get(uploadPath + File.separator + folderPath, savedFileName);
+
+            try {
+                // 파일 저장
+                multipartFile.transferTo(savePath);
+
+                // 이미지 여부 확인 및 썸네일 생성
+                boolean isImage = Files.probeContentType(savePath).startsWith("image");
+                if (isImage) {
+                    File thumbnailFile = new File(uploadPath + File.separator + folderPath, "s_" + savedFileName);
+                    Thumbnailator.createThumbnail(savePath.toFile(), thumbnailFile, 200, 200); // 200x200 썸네일
+                }
+
+                // Member 엔티티에 프로필 이미지 정보 업데이트
+                member.updateProfileImage(uuid, originalFileName, folderPath); // folderPath는 "2025/07/25" 형태
+                profileDTO.setUuid(uuid);
+                profileDTO.setFileName(originalFileName);
+                profileDTO.setSavePath(folderPath); // folderPath는 "2025/07/25" 형태
+                profileDTO.setContentType(Files.probeContentType(savePath));
+                profileDTO.setFileSize(multipartFile.getSize());
+                profileDTO.setImg(isImage);
+
+            } catch (IOException e) {
+                log.error("File upload failed: {}", e.getMessage());
+                throw new RuntimeException("프로필 사진 업로드에 실패했습니다.", e);
+            }
+        }
+
+        // 7. 데이터베이스 저장
+        try {
+            Member savedMember = memberRepository.save(member);
+            log.info("회원 가입 성공: {}", savedMember.getUsername());
+            return savedMember.getId(); // 저장된 회원의 ID 반환
+        } catch (DataIntegrityViolationException e) {
+            log.error("회원 가입 중 데이터 무결성 위반 오류: {}", e.getMessage());
+            // 여기서는 이미 isUsernameExists 등으로 중복을 체크했으므로,
+            // 발생할 가능성이 낮지만, DB 제약 조건에 의한 최종 실패를 처리합니다.
+            throw new RuntimeException("회원 가입에 실패했습니다. (데이터 중복 또는 형식 오류)", e);
+        } catch (Exception e) {
+            log.error("회원 가입 중 예상치 못한 오류: {}", e.getMessage());
+            throw new RuntimeException("회원 가입 중 오류가 발생했습니다.", e);
+        }
+    }
+
+    // 닉네임 중복 시 고유한 닉네임 생성 (예: "닉네임#0000")
+    private String generateUniqueNickname(String baseNickname) {
+        String newNickname = baseNickname;
+        int attempt = 0;
+        // 9999번까지 시도
+        while (nicknameExists(newNickname) && attempt < 10000) {
+            String randomNumber = String.format("%04d", (int) (Math.random() * 10000));
+            newNickname = baseNickname + "#" + randomNumber;
+            attempt++;
+        }
+        if (attempt >= 10000) {
+            throw new RuntimeException("고유한 닉네임을 생성할 수 없습니다. 다시 시도해주세요.");
+        }
+        return newNickname;
+    }
+
+    // 파일 저장 폴더 생성 (년/월/일)
+    private String makeFolder() {
+        String folderPath = LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+        File uploadPathFolder = new File(uploadPath, folderPath);
+        if (!uploadPathFolder.exists()) {
+            uploadPathFolder.mkdirs(); // 폴더가 없으면 생성
+        }
+        return folderPath;
+    }
+
+    @Override
+    public boolean nameExists(String username) {
+        return memberRepository.existsByUsername(username);
+    }
+
+    @Override
+    public boolean nicknameExists(String nickname) {
+        return memberRepository.existsByNickname(nickname);
+    }
+
+    @Override
+    public boolean emailExists(String email) {
+        return memberRepository.existsByEmail(email);
+    }
+
+    @Override
+    public boolean phoneNumberExists(String phoneNumber) {
+        return memberRepository.existsByPhoneNumber(phoneNumber);
+    }
+}

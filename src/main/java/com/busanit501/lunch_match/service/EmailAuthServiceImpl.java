@@ -1,4 +1,4 @@
-package com.busanit501.lunch_match.Service;
+package com.busanit501.lunch_match.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;
