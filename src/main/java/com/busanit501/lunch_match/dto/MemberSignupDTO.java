@@ -53,8 +53,11 @@ public class MemberSignupDTO {
     @Size(max = 100, message = "이메일 주소는 100자 이하로 입력해주세요.") // 이메일 최대 길이 20자는 너무 짧을 수 있습니다.
     private String email;
 
+    @NotBlank(message = "이메일 인증 코드는 필수 입력 값입니다.")
+    private String emailAuthCode; // 사용자가 입력한 인증 코드를 받을 필드 추가 (서비스에서만 씀)
+
     // 닉네임 (중복 방지를 위한 랜덤 숫자 생성은 서비스/엔티티에서 처리)
     @NotBlank(message = "닉네임은 필수 입력 값입니다.")
-    @Size(min = 2, max = 15, message = "닉네임은 2자 이상 15자 이하로 입력해주세요.") // 닉네임 최대 길이 10자는 짧을 수 있습니다.
+    @Size(min = 2, max = 15, message = "닉네임은 2자 이상 15자 이하로 입력해주세요.")
     private String nickname;
 }

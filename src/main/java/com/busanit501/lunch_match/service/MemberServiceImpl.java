@@ -33,6 +33,7 @@ public class MemberServiceImpl implements  MemberService {
     private final MemberRepository memberRepository;
     private final ModelMapper modelMapper;
     private final PasswordEncoder passwordEncoder;
+    private final EmailAuthService emailAuthService;
 
     @Value("${com.busanit501.upload.path}") // application.properties에서 파일 업로드 경로 주입
     private String uploadPath;
@@ -62,7 +63,19 @@ public class MemberServiceImpl implements  MemberService {
             finalNickname = generateUniqueNickname(finalNickname);
         }
 
-        // 2. MemberSignupDTO -> Member Entity 변환
+        //  2. 이메일 인증 코드 검증 로직 추가 **
+        // MemberSignupDTO에 포함된 email과 emailAuthCode를 이용하여 검증
+        boolean isEmailVerified = emailAuthService.verifyAuthCode(
+                memberSignupDTO.getEmail(), memberSignupDTO.getEmailAuthCode());
+
+        if (!isEmailVerified) {
+            log.warn("이메일 인증에 실패했습니다: 이메일={}, 인증코드={}", memberSignupDTO.getEmail(), memberSignupDTO.getEmailAuthCode());
+            throw new IllegalArgumentException("이메일 인증에 실패했습니다. 인증번호가 일치하지 않거나 만료되었습니다.");
+        }
+        // 이메일 인증 성공 시 메모리에 저장된 코드 삭제는 EmailAuthServiceImpl에서 이미 처리
+
+
+        // 3. MemberSignupDTO -> Member Entity 변환
         Member member = modelMapper.map(memberSignupDTO, Member.class);
 
         // birthDate 필드가 null인지 확인하고 명시적으로 설정 (디버깅 또는 예외 처리 강화)
@@ -72,16 +85,16 @@ public class MemberServiceImpl implements  MemberService {
         }
         member.setBirthDate(memberSignupDTO.getBirthDate()); // <-- 이 라인을 추가
 
-        // 3. 비밀번호 암호화
+        // 4. 비밀번호 암호화
         member.changePassword(passwordEncoder.encode(memberSignupDTO.getPassword()));
 
-        // 4. 최종 닉네임 설정
+        // 5. 최종 닉네임 설정
         member.addNickname(finalNickname); // Member 엔티티에 닉네임 필드에 값을 설정하는 메서드 추가 필요
 
-        // 5. 기본 역할 부여 (예: USER)
+        // 6. 기본 역할 부여 (예: USER)
         member.addRole(MemberRole.USER);
 
-        // 6. 프로필 사진 처리
+        // 7. 프로필 사진 처리
         if (profileDTO != null && profileDTO.getFile() != null && !profileDTO.getFile().isEmpty()) {
             MultipartFile multipartFile = profileDTO.getFile();
             String originalFileName = multipartFile.getOriginalFilename();
@@ -118,7 +131,7 @@ public class MemberServiceImpl implements  MemberService {
             }
         }
 
-        // 7. 데이터베이스 저장
+        // 8. 데이터베이스 저장
         try {
             Member savedMember = memberRepository.save(member);
             log.info("회원 가입 성공: {}", savedMember.getUsername());
@@ -163,6 +176,11 @@ public class MemberServiceImpl implements  MemberService {
     @Override
     public boolean isUsernameExists(String username) {
         return memberRepository.existsByUsername(username);
+    }
+
+    @Override
+    public boolean isNameExists(String name) {
+        return false;
     }
 
     @Override

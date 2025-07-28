@@ -35,12 +35,20 @@ public class Member {
     @Column(unique = true, nullable = false, length = 20) // 전화번호 고유하고 필수이며 길이 제한
     private String phoneNumber;
 
+    @Column(nullable = false, length = 10) // 이름 필드 추가 (필수, 길이 제한)
+    private String name;
+
 //    @Setter
     @Column(nullable = false) // LocalDate는 컬럼 길이 제한이 필요 없음
     private LocalDate birthDate; // DTO와 동일하게 LocalDate 타입으로 변경하는 것을 권장
 
     @Column(unique = true, nullable = false, length = 100) // 이메일은 고유하고 필수이며 길이 제한
     private String email;
+
+    //이메일인증... 인증되면 true 아니면 false(근데 인증못받으면 회원가입안됨)
+    @Column(nullable = false)
+    private boolean isEmailVerified; // 이메일 인증 완료 여부
+    /// ////////////
 
     @Column(unique = true, nullable = false, length = 20) // 닉네임은 고유하고 필수이며 길이 제한
     private String nickname;

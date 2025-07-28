@@ -9,6 +9,9 @@ public interface MemberService {
     // 사용자 ID 중복 확인
     boolean isUsernameExists(String username);
 
+    // 이름 중복 확인
+    boolean isNameExists(String name);
+
     // 닉네임 중복 확인
     boolean isNicknameExists(String nickname);
 
