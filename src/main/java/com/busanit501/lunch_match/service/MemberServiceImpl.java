@@ -32,13 +32,13 @@ public class MemberServiceImpl implements  MemberService {
 
     private final MemberRepository memberRepository;
     private final ModelMapper modelMapper;
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${com.busanit501.upload.path}") // application.properties에서 파일 업로드 경로 주입
     private String uploadPath;
 
     @Override
-    public Long SignupMember(MemberSignupDTO memberSignupDTO, ProfileDTO profileDTO) {
+    public Long registerMember(MemberSignupDTO memberSignupDTO, ProfileDTO profileDTO) {
         // 1. DTO 유효성 검증 (Controller에서 @Valid로 처리되지만, 서비스에서도 핵심 로직 전 검증 권장)
         // 비밀번호와 비밀번호 확인 일치 여부
         if (!memberSignupDTO.getPassword().equals(memberSignupDTO.getConfirmPassword())) {
@@ -46,19 +46,19 @@ public class MemberServiceImpl implements  MemberService {
         }
 
         // 중복 확인
-        if (nameExists(memberSignupDTO.getUsername())) {
+        if (isUsernameExists(memberSignupDTO.getUsername())) {
             throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
         }
-        if (emailExists(memberSignupDTO.getEmail())) {
+        if (isEmailExists(memberSignupDTO.getEmail())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
-        if (phoneNumberExists(memberSignupDTO.getPhoneNumber())) {
+        if (isPhoneNumberExists(memberSignupDTO.getPhoneNumber())) {
             throw new IllegalArgumentException("이미 사용 중인 전화번호입니다.");
         }
 
         // 닉네임 중복 처리 (랜덤 숫자 추가)
         String finalNickname = memberSignupDTO.getNickname();
-        if (nicknameExists(finalNickname)) {
+        if (isNicknameExists(finalNickname)) {
             finalNickname = generateUniqueNickname(finalNickname);
         }
 
@@ -132,13 +132,13 @@ public class MemberServiceImpl implements  MemberService {
         String newNickname = baseNickname;
         int attempt = 0;
         // 9999번까지 시도
-        while (nicknameExists(newNickname) && attempt < 10000) {
+        while (isNicknameExists(newNickname) && attempt < 10000) {
             String randomNumber = String.format("%04d", (int) (Math.random() * 10000));
             newNickname = baseNickname + "#" + randomNumber;
             attempt++;
         }
         if (attempt >= 10000) {
-            throw new RuntimeException("고유한 닉네임을 생성할 수 없습니다. 다시 시도해주세요.");
+            throw new RuntimeException("닉네임을 생성할 수 없습니다. 다시 시도해주세요.");
         }
         return newNickname;
     }
@@ -154,22 +154,22 @@ public class MemberServiceImpl implements  MemberService {
     }
 
     @Override
-    public boolean nameExists(String username) {
+    public boolean isUsernameExists(String username) {
         return memberRepository.existsByUsername(username);
     }
 
     @Override
-    public boolean nicknameExists(String nickname) {
+    public boolean isNicknameExists(String nickname) {
         return memberRepository.existsByNickname(nickname);
     }
 
     @Override
-    public boolean emailExists(String email) {
+    public boolean isEmailExists(String email) {
         return memberRepository.existsByEmail(email);
     }
 
     @Override
-    public boolean phoneNumberExists(String phoneNumber) {
+    public boolean isPhoneNumberExists(String phoneNumber) {
         return memberRepository.existsByPhoneNumber(phoneNumber);
     }
 }

@@ -38,20 +38,27 @@ public class EmailAuthServiceImpl implements EmailAuthService{
     @Override
     public boolean verifyAuthCode(String email, String inputCode) {
         AuthInfo authInfo = authStorage.get(email);
+        // 1. 인증 정보가 없는 경우 (잘못된 이메일 또는 인증 요청을 하지 않음)
         if (authInfo == null) return false;
 
-        // 시간 만료 확인
+        // 2. 시간 만료 확인
         if (Duration.between(authInfo.createdAt, LocalDateTime.now()).toMinutes() >= EXPIRE_MINUTES) {
             authStorage.remove(email);
             return false;
         }
 
-        return authInfo.code.equals(inputCode);
+        // 3. 인증 코드 일치 여부 확인
+        boolean isMatched = authInfo.code.equals(inputCode);
+        if (isMatched) {
+            authStorage.remove(email); // 인증 성공 시 정보 삭제 (일회용)
+        }
+        return isMatched;
     }
 
     // 6자리 인증코드 생성
     private String createCode() {
         Random random = new Random();
+        // 0부터 999999까지의 숫자 중 6자리
         return String.format("%06d", random.nextInt(1000000));
     }
 
