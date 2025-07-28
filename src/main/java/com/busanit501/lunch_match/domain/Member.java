@@ -14,6 +14,7 @@ import java.util.Set;
 @Entity
 @Table(name = "member_tbl")
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -34,6 +35,7 @@ public class Member {
     @Column(unique = true, nullable = false, length = 20) // 전화번호 고유하고 필수이며 길이 제한
     private String phoneNumber;
 
+//    @Setter
     @Column(nullable = false) // LocalDate는 컬럼 길이 제한이 필요 없음
     private LocalDate birthDate; // DTO와 동일하게 LocalDate 타입으로 변경하는 것을 권장
 

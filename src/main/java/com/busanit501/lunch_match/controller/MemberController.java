@@ -24,12 +24,19 @@ import java.util.Map;
 public class MemberController {
     private final MemberService memberService;
 
-    @PostMapping(value = "/signup", consumes = MediaType.MULTIPART_FORM_DATA_VALUE) //signup 경로로 들어오는 POST 요청을 처리
+    @PostMapping(value = "/signup", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, String>> signupMember(
-            @Valid @RequestPart("memberSignupDTO") MemberSignupDTO memberSignupDTO, // 회원 정보 DTO
-            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage) { // required = false는 프로필 이미지 가 필수가아님.
+            // ***** 이 부분이 가장 중요합니다: @RequestPart 사용 *****
+            @Valid @RequestPart("memberSignupDTO") MemberSignupDTO memberSignupDTO,
+            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage) {
 
         log.info("회원가입 요청 수신: {}", memberSignupDTO.getUsername());
+
+        // 비밀번호 확인 로직 추가 (DTO에 있으므로 Controller에서 먼저 검사하는 것이 좋음)
+        if (!memberSignupDTO.getPassword().equals(memberSignupDTO.getConfirmPassword())) {
+            log.warn("회원가입 실패: 비밀번호와 비밀번호 확인이 일치하지 않습니다.");
+            return ResponseEntity.badRequest().body(Map.of("error", "비밀번호와 비밀번호 확인이 일치하지 않습니다."));
+        }
 
         // ProfileDTO 생성 및 MultipartFile 설정
         ProfileDTO profileDTO = null;
@@ -43,11 +50,12 @@ public class MemberController {
             Long memberId = memberService.registerMember(memberSignupDTO, profileDTO);
             log.info("회원가입 성공, Member ID: {}", memberId);
 
-            // 성공 응답 반환
+            // 성공 응답 반환 (현재 코드 유지)
             return ResponseEntity.ok(Map.of("message", "회원가입이 성공적으로 완료되었습니다.", "memberId", memberId.toString()));
 
         } catch (IllegalArgumentException e) {
-            // 사용자 입력 오류 (예: 중복 아이디, 비밀번호 불일치)
+            // 사용자 입력 오류 (예: 중복 아이디, 비밀번호 불일치 등)
+            // 비밀번호 불일치 예외는 위에서 처리했으니, 여기서는 주로 중복 관련 예외가 잡힐 것임.
             log.warn("회원가입 실패 (유효성 검사 또는 중복): {}", e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (RuntimeException e) {
@@ -57,4 +65,3 @@ public class MemberController {
         }
     }
 }
-

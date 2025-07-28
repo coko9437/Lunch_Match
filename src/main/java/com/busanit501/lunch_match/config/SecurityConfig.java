@@ -26,11 +26,14 @@ public class SecurityConfig {
         // 특정 경로에 대한 접근 권한 설정
         http.authorizeHttpRequests(authorize -> authorize
                 // 회원가입 API는 인증 없이 접근 허용
-                .requestMatchers("/api/members/signup").permitAll()
+                // 이렇게 하면 `/api/members/signup`, `/api/auth/send-code` 등 모두 포함됩니다.
+                .requestMatchers("/api/members/**", "/api/auth/**").permitAll()
+//
                 // 이메일 인증 API는 인증 없이 접근 허용
-                .requestMatchers("/api/auth/**").permitAll()
+//                .requestMatchers("/api/auth/**").permitAll()
+
                 // H2 Console, Swagger UI, 업로드 파일 접근은 인증 없이 허용
-                .requestMatchers("/h2-console/**", "/swagger-ui/**", "/v3/api-docs/**", "/upload/**").permitAll()
+                .requestMatchers("/h2-console/**", "/swagger-ui/**", "/v3/api-docs/**", "/upload/**", "/error/**").permitAll()
                 // 그 외 모든 요청은 인증 필요 (로그인 필요)
                 .anyRequest().authenticated()
         );

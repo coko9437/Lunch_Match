@@ -1,5 +1,6 @@
 package com.busanit501.lunch_match.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -44,6 +45,7 @@ public class MemberSignupDTO {
 
     // 생년월일 (YYYYMMDD 형태)
     @NotNull(message = "생년월일은 필수 입력 값입니다.")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate birthDate; // DTO에서 LocalDate로 받으므로 엔티티도 LocalDate로 통일 권장
 
     @NotBlank(message = "이메일은 필수 입력 값입니다.")

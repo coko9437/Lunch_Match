@@ -65,6 +65,13 @@ public class MemberServiceImpl implements  MemberService {
         // 2. MemberSignupDTO -> Member Entity 변환
         Member member = modelMapper.map(memberSignupDTO, Member.class);
 
+        // birthDate 필드가 null인지 확인하고 명시적으로 설정 (디버깅 또는 예외 처리 강화)
+        if (memberSignupDTO.getBirthDate() == null) {
+            log.error("MemberSignupDTO의 birthDate가 null입니다. DTO 파싱 또는 JSON 문제일 수 있습니다.");
+            throw new IllegalArgumentException("생년월일 정보가 누락되었습니다."); // 예외 발생
+        }
+        member.setBirthDate(memberSignupDTO.getBirthDate()); // <-- 이 라인을 추가
+
         // 3. 비밀번호 암호화
         member.changePassword(passwordEncoder.encode(memberSignupDTO.getPassword()));
 
